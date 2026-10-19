@@ -247,6 +247,8 @@ import {
   resolveConnectionCacheOverride,
 } from "../utils/cacheControlPolicy.ts";
 import { getCachedSettings } from "@/lib/db/readCache";
+import { getModelCustomRequestBody } from "@/lib/db/models";
+import { isForbiddenRequestBodyKey } from "@/lib/db/models/compat";
 import {
   applyApiKeyCodexServiceMode,
   withApiKeyCodexServiceMode,
@@ -2301,6 +2303,19 @@ async function handleChatCoreInner({
   });
   translatedBody = finalizedRequest.translatedBody;
   const { requestToolIdentityMap, toolNameMap } = finalizedRequest;
+
+  // Merge model-level advanced request body attributes (per-protocol)
+  const advancedCustomBody = {
+    ...getModelCustomRequestBody(provider || "", model || "", sourceFormat),
+    ...getModelCustomRequestBody(provider || "", resolvedModel || "", sourceFormat),
+  };
+  if (Object.keys(advancedCustomBody).length > 0) {
+    for (const [key, value] of Object.entries(advancedCustomBody)) {
+      if (!isForbiddenRequestBodyKey(key)) {
+        translatedBody[key] = value;
+      }
+    }
+  }
 
   // Strip unsupported parameters for reasoning models (o1, o3, etc.) and any
   // provider that can't accept them at all (e.g. AI Horde's raw completion
