@@ -74,3 +74,40 @@ test("getModelCustomRequestBody returns empty object when not found or missing p
     {}
   );
 });
+
+test("modelCompatPerProtocolSchema and providerModelMutationSchema accept customRequestBody", async () => {
+  const { modelCompatPerProtocolSchema } =
+    await import("../../src/shared/validation/schemas/misc.ts");
+  const { providerModelMutationSchema } =
+    await import("../../src/shared/validation/schemas/provider.ts");
+
+  // Valid customRequestBody in per-protocol schema
+  const parsedCompat = modelCompatPerProtocolSchema.safeParse({
+    customRequestBody: { temperature: 0.7, thinking: true },
+  });
+  assert.equal(parsedCompat.success, true);
+
+  // Null customRequestBody (clearing)
+  const parsedNull = modelCompatPerProtocolSchema.safeParse({
+    customRequestBody: null,
+  });
+  assert.equal(parsedNull.success, true);
+
+  // Rejects forbidden key
+  const parsedForbidden = modelCompatPerProtocolSchema.safeParse({
+    customRequestBody: { model: "forbidden" },
+  });
+  assert.equal(parsedForbidden.success, false);
+
+  // Valid mutation payload with compatByProtocol
+  const parsedMutation = providerModelMutationSchema.safeParse({
+    provider: "openai",
+    modelId: "gpt-4o",
+    compatByProtocol: {
+      openai: {
+        customRequestBody: { temperature: 0.5 },
+      },
+    },
+  });
+  assert.equal(parsedMutation.success, true);
+});

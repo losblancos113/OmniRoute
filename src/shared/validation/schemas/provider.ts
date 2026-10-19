@@ -16,6 +16,7 @@ import {
 import {
   upstreamHeadersRecordSchema,
   modelCompatPerProtocolSchema,
+  customRequestBodySchema,
   customHeadersSchema,
 } from "./misc.ts";
 import { isValidProviderIconUrl } from "@/shared/validation/iconUrl";
@@ -324,6 +325,7 @@ export const providerModelMutationSchema = z.object({
   normalizeToolCallId: z.boolean().optional(),
   preserveOpenAIDeveloperRole: z.boolean().nullable().optional(),
   upstreamHeaders: upstreamHeadersRecordSchema.nullable().optional(),
+  customRequestBody: customRequestBodySchema,
   /** Zod 4: `z.record(z.enum([...]), …)` requires every enum key; use `partialRecord` for sparse patches. */
   compatByProtocol: z
     .partialRecord(z.enum(["openai", "openai-responses", "claude"]), modelCompatPerProtocolSchema)

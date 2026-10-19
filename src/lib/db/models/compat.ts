@@ -297,6 +297,7 @@ export type ModelCompatPatch = {
   compatByProtocol?: CompatByProtocolMap;
   /** Replace top-level extra headers for override-only rows; omit to leave unchanged. */
   upstreamHeaders?: Record<string, string> | null;
+  customRequestBody?: Record<string, unknown> | null;
   isHidden?: boolean | null;
   /**
    * #12172: when set alongside `isHidden`, scopes the write to that one

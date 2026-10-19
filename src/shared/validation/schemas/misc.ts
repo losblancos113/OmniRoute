@@ -12,6 +12,7 @@ import {
   isForbiddenUpstreamHeaderName,
   isForbiddenCustomHeaderName,
 } from "@/shared/constants/upstreamHeaders";
+import { isForbiddenRequestBodyKey } from "@/shared/constants/modelCompat";
 import { MAX_TIMER_TIMEOUT_MS } from "@/shared/utils/runtimeTimeouts";
 
 export function isHttpUrl(value: string): boolean {
@@ -89,11 +90,27 @@ export const upstreamHeadersRecordSchema = z
     message: "forbidden header name in record",
   });
 
+export const customRequestBodySchema = z
+  .record(z.string(), z.unknown())
+  .nullable()
+  .optional()
+  .refine(
+    (rec) => {
+      if (!rec) return true;
+      for (const k of Object.keys(rec)) {
+        if (isForbiddenRequestBodyKey(k)) return false;
+      }
+      return true;
+    },
+    { message: "customRequestBody contains forbidden keys" }
+  );
+
 export const modelCompatPerProtocolSchema = z
   .object({
     normalizeToolCallId: z.boolean().optional(),
     preserveOpenAIDeveloperRole: z.boolean().optional(),
     upstreamHeaders: upstreamHeadersRecordSchema.optional(),
+    customRequestBody: customRequestBodySchema,
   })
   .strict();
 

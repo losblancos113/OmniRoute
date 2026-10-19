@@ -249,6 +249,7 @@ export async function PUT(request) {
       normalizeToolCallId,
       preserveOpenAIDeveloperRole,
       upstreamHeaders,
+      customRequestBody,
       compatByProtocol,
       contextWindowOverride,
       maxOutputTokenOverride,
@@ -267,6 +268,7 @@ export async function PUT(request) {
     if ("preserveOpenAIDeveloperRole" in raw)
       updates.preserveOpenAIDeveloperRole = preserveOpenAIDeveloperRole;
     if ("upstreamHeaders" in raw) updates.upstreamHeaders = upstreamHeaders;
+    if ("customRequestBody" in raw) updates.customRequestBody = customRequestBody;
     if ("supportsVision" in raw) updates.supportsVision = supportsVision;
     if ("isFree" in raw) updates.isFree = isFree;
     // #9820: video-generation job preset — schema is non-nullable optional, so
@@ -311,6 +313,7 @@ export async function PUT(request) {
             "normalizeToolCallId",
             "preserveOpenAIDeveloperRole",
             "upstreamHeaders",
+            "customRequestBody",
             "compatByProtocol",
             "contextWindowOverride",
             "maxOutputTokenOverride",
@@ -322,6 +325,7 @@ export async function PUT(request) {
         ("normalizeToolCallId" in raw ||
           "preserveOpenAIDeveloperRole" in raw ||
           "upstreamHeaders" in raw ||
+          "customRequestBody" in raw ||
           "compatByProtocol" in raw ||
           "contextWindowOverride" in raw ||
           "maxOutputTokenOverride" in raw ||
@@ -360,6 +364,12 @@ export async function PUT(request) {
           patch.upstreamHeaders =
             upstreamHeaders === null || typeof upstreamHeaders === "object"
               ? upstreamHeaders
+              : undefined;
+        }
+        if ("customRequestBody" in raw) {
+          patch.customRequestBody =
+            customRequestBody === null || typeof customRequestBody === "object"
+              ? customRequestBody
               : undefined;
         }
         if ("apiFormat" in raw) {
