@@ -42,6 +42,7 @@ export interface PassthroughModelRowProps {
   effectiveModelPreserveDeveloper: (modelId: string, protocol?: string) => boolean;
   saveModelCompatFlags: (modelId: string, patch: ModelCompatSavePatch) => void;
   getUpstreamHeadersRecord: (protocol: string) => Record<string, string>;
+  getCustomRequestBodyRecord?: (protocol: string) => Record<string, unknown> | undefined;
   compatDisabled?: boolean;
   onToggleHidden?: (modelId: string, hidden: boolean) => Promise<void>;
   togglingHidden?: boolean;
@@ -83,6 +84,7 @@ export default function PassthroughModelRow({
   effectiveModelNormalize,
   effectiveModelPreserveDeveloper,
   getUpstreamHeadersRecord,
+  getCustomRequestBodyRecord,
   saveModelCompatFlags,
   provider,
   compatDisabled,
@@ -400,6 +402,7 @@ export default function PassthroughModelRow({
             effectiveModelNormalize={(p) => effectiveModelNormalize(modelId, p)}
             effectiveModelPreserveDeveloper={(p) => effectiveModelPreserveDeveloper(modelId, p)}
             getUpstreamHeadersRecord={getUpstreamHeadersRecord}
+            getCustomRequestBodyRecord={getCustomRequestBodyRecord}
             onCompatPatch={(protocol, payload) =>
               saveModelCompatFlags(modelId, { compatByProtocol: { [protocol]: payload } })
             }

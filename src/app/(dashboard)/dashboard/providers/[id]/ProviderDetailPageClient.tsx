@@ -509,6 +509,7 @@ export default function ProviderDetailPageClient() {
   const effectiveModelPreserveDeveloper = compat.effectiveModelPreserveDeveloper;
   const effectiveModelHidden = compat.isModelHidden;
   const getUpstreamHeadersRecordForModel = compat.getUpstreamHeadersRecord;
+  const getCustomRequestBodyRecordForModel = compat.getCustomRequestBodyRecord;
 
   const compatibleFallbackModels = useMemo(
     () => getCompatibleFallbackModels(providerId, modelMeta.customModels),
@@ -852,6 +853,7 @@ export default function ProviderDetailPageClient() {
             effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
             effectiveModelHidden={effectiveModelHidden}
             getUpstreamHeadersRecordForModel={getUpstreamHeadersRecordForModel}
+            getCustomRequestBodyRecordForModel={getCustomRequestBodyRecordForModel}
             t={t}
           />
 

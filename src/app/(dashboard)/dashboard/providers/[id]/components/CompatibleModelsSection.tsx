@@ -64,6 +64,10 @@ export interface CompatibleModelsSectionProps {
   effectiveModelNormalize: (alias: string) => boolean;
   effectiveModelPreserveDeveloper: (alias: string) => boolean;
   getUpstreamHeadersRecord: (modelId: string, protocol: string) => Record<string, string>;
+  getCustomRequestBodyRecord?: (
+    modelId: string,
+    protocol: string
+  ) => Record<string, unknown> | undefined;
   saveModelCompatFlags: (modelId: string, flags: CompatibleModelsSaveFlags) => Promise<void>;
   compatSavingModelId?: string;
   onModelsChanged?: () => void;
@@ -133,6 +137,7 @@ export default function CompatibleModelsSection({
   effectiveModelNormalize,
   effectiveModelPreserveDeveloper,
   getUpstreamHeadersRecord,
+  getCustomRequestBodyRecord,
   saveModelCompatFlags,
   compatSavingModelId,
   onModelsChanged,
@@ -606,6 +611,7 @@ export default function CompatibleModelsSection({
                     effectiveModelNormalize={effectiveModelNormalize}
                     effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
                     getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                    getCustomRequestBodyRecord={(p) => getCustomRequestBodyRecord?.(modelId, p)}
                     saveModelCompatFlags={saveModelCompatFlags}
                     compatDisabled={compatSavingModelId === modelId}
                     onToggleHidden={onToggleHidden}

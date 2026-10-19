@@ -120,6 +120,10 @@ export interface ProviderModelsSectionProps {
   effectiveModelPreserveDeveloper: (modelId: string, protocol?: string) => boolean;
   effectiveModelHidden: (modelId: string) => boolean;
   getUpstreamHeadersRecordForModel: (modelId: string, protocol: string) => Record<string, string>;
+  getCustomRequestBodyRecordForModel?: (
+    modelId: string,
+    protocol: string
+  ) => Record<string, unknown> | undefined;
 
   // Translation
   t: ProviderMessageTranslator;
@@ -186,6 +190,7 @@ export default function ProviderModelsSection({
   effectiveModelPreserveDeveloper,
   effectiveModelHidden,
   getUpstreamHeadersRecordForModel,
+  getCustomRequestBodyRecordForModel,
   t,
 }: ProviderModelsSectionProps) {
   const [freeFilter, setFreeFilter] = useState<"all" | "free" | "paid">("all");
@@ -298,6 +303,7 @@ export default function ProviderModelsSection({
           effectiveModelNormalize={effectiveModelNormalize}
           effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
           getUpstreamHeadersRecord={getUpstreamHeadersRecordForModel}
+          getCustomRequestBodyRecord={getCustomRequestBodyRecordForModel}
           saveModelCompatFlags={saveModelCompatFlags}
           compatSavingModelId={compatSavingModelId}
           onModelsChanged={fetchProviderModelMeta}
@@ -377,6 +383,7 @@ export default function ProviderModelsSection({
           effectiveModelNormalize={effectiveModelNormalize}
           effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
           getUpstreamHeadersRecord={getUpstreamHeadersRecordForModel}
+          getCustomRequestBodyRecord={getCustomRequestBodyRecordForModel}
           saveModelCompatFlags={saveModelCompatFlags}
           compatSavingModelId={compatSavingModelId}
           isModelHidden={effectiveModelHidden}
@@ -550,6 +557,7 @@ export default function ProviderModelsSection({
               effectiveModelNormalize={effectiveModelNormalize}
               effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
               getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecordForModel(model.id, p)}
+              getCustomRequestBodyRecord={(p) => getCustomRequestBodyRecordForModel?.(model.id, p)}
               saveModelCompatFlags={saveModelCompatFlags}
               compatDisabled={compatSavingModelId === model.id}
               onToggleHidden={(modelId, hidden) =>

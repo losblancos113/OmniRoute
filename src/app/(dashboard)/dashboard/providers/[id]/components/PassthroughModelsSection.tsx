@@ -66,6 +66,10 @@ export interface PassthroughModelsSectionProps {
   effectiveModelNormalize: (alias: string) => boolean;
   effectiveModelPreserveDeveloper: (alias: string) => boolean;
   getUpstreamHeadersRecord: (modelId: string, protocol: string) => Record<string, string>;
+  getCustomRequestBodyRecord?: (
+    modelId: string,
+    protocol: string
+  ) => Record<string, unknown> | undefined;
   saveModelCompatFlags: (modelId: string, flags: ModelCompatSavePatchPassthrough) => Promise<void>;
   compatSavingModelId?: string;
   isModelHidden: (modelId: string) => boolean;
@@ -114,6 +118,7 @@ export default function PassthroughModelsSection({
   effectiveModelNormalize,
   effectiveModelPreserveDeveloper,
   getUpstreamHeadersRecord,
+  getCustomRequestBodyRecord,
   saveModelCompatFlags,
   compatSavingModelId,
   isModelHidden,
@@ -489,6 +494,7 @@ export default function PassthroughModelsSection({
                 effectiveModelNormalize={effectiveModelNormalize}
                 effectiveModelPreserveDeveloper={effectiveModelPreserveDeveloper}
                 getUpstreamHeadersRecord={(p) => getUpstreamHeadersRecord(modelId, p)}
+                getCustomRequestBodyRecord={(p) => getCustomRequestBodyRecord?.(modelId, p)}
                 saveModelCompatFlags={saveModelCompatFlags}
                 compatDisabled={compatSavingModelId === modelId}
                 onToggleHidden={onToggleHidden}

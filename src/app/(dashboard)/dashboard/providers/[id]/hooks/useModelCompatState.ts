@@ -19,6 +19,7 @@ import {
   anyNormalizeCompatBadge,
   anyNoPreserveCompatBadge,
   effectiveUpstreamHeadersForProtocol,
+  effectiveCustomRequestBodyForProtocol,
   type CompatModelRow,
   type CompatModelMap,
 } from "../providerPageHelpers";
@@ -36,6 +37,11 @@ export interface ModelCompatState {
   effectiveModelPreserveDeveloper: (modelId: string, protocol?: string) => boolean;
   /** Stable callback: upstream-headers record for (modelId, protocol). */
   getUpstreamHeadersRecord: (modelId: string, protocol: string) => Record<string, string>;
+  /** Stable callback: custom request body attributes for (modelId, protocol). */
+  getCustomRequestBodyRecord: (
+    modelId: string,
+    protocol: string
+  ) => Record<string, unknown> | undefined;
   /** Stable callback: should the normalize compat badge be shown? */
   anyNormalizeCompatBadge: (modelId: string) => boolean;
   /** Stable callback: should the no-preserve compat badge be shown? */
@@ -78,6 +84,12 @@ export function useModelCompatState(
     [customMap, overrideMap]
   );
 
+  const getCustomRequestBodyRecord = useCallback(
+    (modelId: string, protocol: string) =>
+      effectiveCustomRequestBodyForProtocol(modelId, protocol, customMap, overrideMap),
+    [customMap, overrideMap]
+  );
+
   const anyNormalizeCompatBadgeFn = useCallback(
     (modelId: string) => anyNormalizeCompatBadge(modelId, customMap, overrideMap),
     [customMap, overrideMap]
@@ -95,6 +107,7 @@ export function useModelCompatState(
     effectiveModelNormalize,
     effectiveModelPreserveDeveloper,
     getUpstreamHeadersRecord,
+    getCustomRequestBodyRecord,
     anyNormalizeCompatBadge: anyNormalizeCompatBadgeFn,
     anyNoPreserveCompatBadge: anyNoPreserveCompatBadgeFn,
   };

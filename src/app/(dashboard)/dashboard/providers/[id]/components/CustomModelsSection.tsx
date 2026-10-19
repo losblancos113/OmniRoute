@@ -24,6 +24,7 @@ import {
   effectiveNormalizeForProtocol,
   effectivePreserveForProtocol,
   effectiveUpstreamHeadersForProtocol,
+  effectiveCustomRequestBodyForProtocol,
   endpointsForApiFormatChange,
   formatProviderModelsErrorResponse,
   parseContextWindowOverrideInput,
@@ -866,6 +867,9 @@ export default function CustomModelsSection({
                     }
                     getUpstreamHeadersRecord={(p) =>
                       effectiveUpstreamHeadersForProtocol(model.id!, p, customMap, overrideMap)
+                    }
+                    getCustomRequestBodyRecord={(p) =>
+                      effectiveCustomRequestBodyForProtocol(model.id!, p, customMap, overrideMap)
                     }
                     onCompatPatch={(protocol, payload) =>
                       saveCustomCompat(model.id!, {

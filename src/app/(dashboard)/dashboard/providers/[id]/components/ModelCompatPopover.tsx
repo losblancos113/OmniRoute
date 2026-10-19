@@ -7,7 +7,10 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Input, Toggle } from "@/shared/components";
-import { MODEL_COMPAT_PROTOCOL_KEYS } from "@/shared/constants/modelCompat";
+import {
+  MODEL_COMPAT_PROTOCOL_KEYS,
+  validateAndSanitizeCustomRequestBody,
+} from "@/shared/constants/modelCompat";
 import {
   upstreamHeadersRecordsEqual,
   UPSTREAM_HEADERS_UI_MAX,
@@ -121,12 +124,14 @@ export interface ModelCompatPopoverProps {
   effectiveModelNormalize: (protocol: string) => boolean;
   effectiveModelPreserveDeveloper: (protocol: string) => boolean;
   getUpstreamHeadersRecord: (protocol: string) => Record<string, string>;
+  getCustomRequestBodyRecord?: (protocol: string) => Record<string, unknown> | undefined;
   onCompatPatch: (
     protocol: string,
     payload: {
       normalizeToolCallId?: boolean;
       preserveOpenAIDeveloperRole?: boolean;
       upstreamHeaders?: Record<string, string>;
+      customRequestBody?: Record<string, unknown> | null;
     }
   ) => void;
   showDeveloperToggle?: boolean;
@@ -145,6 +150,7 @@ export default function ModelCompatPopover({
   effectiveModelNormalize,
   effectiveModelPreserveDeveloper,
   getUpstreamHeadersRecord,
+  getCustomRequestBodyRecord,
   onCompatPatch,
   showDeveloperToggle = true,
   compact = false,
@@ -153,6 +159,9 @@ export default function ModelCompatPopover({
   const [open, setOpen] = useState(false);
   const [protocol, setProtocol] = useState<string>(MODEL_COMPAT_PROTOCOL_KEYS[0]);
   const [headerRows, setHeaderRows] = useState<HeaderDraftRow[]>([]);
+  const [customBodyText, setCustomBodyText] = useState("");
+  const [customBodyError, setCustomBodyError] = useState<string | null>(null);
+  const customBodyTextRef = useRef("");
   const [blockText, setBlockText] = useState("");
   const [allowText, setAllowText] = useState("");
   const [paramSaving, setParamSaving] = useState(false);
@@ -273,12 +282,61 @@ export default function ModelCompatPopover({
     queueMicrotask(() => tryCommitHeaderRows(headerRowsRef.current));
   }, [tryCommitHeaderRows]);
 
+  const loadCustomBodyFor = useCallback(
+    (nextProtocol: string) => {
+      const rec = getCustomRequestBodyRecord?.(nextProtocol);
+      const text = rec && Object.keys(rec).length > 0 ? JSON.stringify(rec, null, 2) : "";
+      customBodyTextRef.current = text;
+      setCustomBodyText(text);
+      setCustomBodyError(null);
+    },
+    [getCustomRequestBodyRecord]
+  );
+
+  const handleCustomBodyChange = (value: string) => {
+    customBodyTextRef.current = value;
+    setCustomBodyText(value);
+  };
+
+  const handleCustomBodyBlur = useCallback(() => {
+    const trimmed = customBodyTextRef.current.trim();
+    if (!trimmed) {
+      setCustomBodyError(null);
+      const current = getCustomRequestBodyRecord?.(protocol);
+      if (current && Object.keys(current).length > 0) {
+        onCompatPatch(protocol, { customRequestBody: null });
+      }
+      return;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      setCustomBodyError(providerText(t, "compatAdvancedBodyInvalidJson", "● Invalid JSON format"));
+      return;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      setCustomBodyError(
+        providerText(t, "compatAdvancedBodyMustBeObject", "● Must be a JSON object")
+      );
+      return;
+    }
+    const validated = validateAndSanitizeCustomRequestBody(parsed);
+    if (validated.valid === false) {
+      setCustomBodyError(`● ${validated.error}`);
+      return;
+    }
+    setCustomBodyError(null);
+    onCompatPatch(protocol, { customRequestBody: validated.data });
+  }, [getCustomRequestBodyRecord, onCompatPatch, protocol, t]);
+
   useEffect(() => {
     if (!open) return;
     return () => {
       tryCommitHeaderRows(headerRowsRef.current);
+      handleCustomBodyBlur();
     };
-  }, [open, tryCommitHeaderRows]);
+  }, [open, tryCommitHeaderRows, handleCustomBodyBlur]);
 
   // Rows (re)load from the parent when the popover opens or the protocol
   // switches — both user gestures — so the load lives in those handlers
@@ -304,13 +362,19 @@ export default function ModelCompatPopover({
     const next = !open;
     setOpen(next);
     resetValueVisibility();
-    if (next) loadHeaderRowsFor(protocol);
+    if (next) {
+      loadHeaderRowsFor(protocol);
+      loadCustomBodyFor(protocol);
+    }
   };
 
   const handleProtocolChange = (nextProtocol: string) => {
     setProtocol(nextProtocol);
     resetValueVisibility();
-    if (open) loadHeaderRowsFor(nextProtocol);
+    if (open) {
+      loadHeaderRowsFor(nextProtocol);
+      loadCustomBodyFor(nextProtocol);
+    }
   };
 
   // Load model-level block/allow from param-filters API
@@ -648,6 +712,37 @@ export default function ModelCompatPopover({
                     )}
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-lg border-2 border-zinc-200 bg-zinc-100 p-3 dark:border-zinc-600 dark:bg-zinc-900">
+                <label className="block text-[11px] font-semibold text-text-main mb-1">
+                  {providerText(t, "compatAdvancedBodyLabel", "Advanced Body (JSON)")}
+                </label>
+                <p className="text-[11px] text-text-muted mb-2 leading-relaxed">
+                  {providerText(
+                    t,
+                    "compatAdvancedBodyHint",
+                    "Merged into outgoing request body for this protocol"
+                  )}
+                </p>
+                <textarea
+                  value={customBodyText}
+                  onChange={(e) => handleCustomBodyChange(e.target.value)}
+                  onBlur={handleCustomBodyBlur}
+                  disabled={disabled}
+                  rows={4}
+                  placeholder={`{\n  "temperature": 0.7\n}`}
+                  className="w-full rounded-lg border border-zinc-200 bg-white p-2 text-xs font-mono text-text-main placeholder:text-text-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/30 dark:border-zinc-600 dark:bg-zinc-900"
+                  spellCheck={false}
+                />
+                {customBodyError && (
+                  <p
+                    role="alert"
+                    className="mt-1 text-[11px] font-medium text-red-600 dark:text-red-400"
+                  >
+                    {customBodyError}
+                  </p>
+                )}
               </div>
 
               <div className="mt-4 rounded-lg border-2 border-zinc-200 bg-zinc-100 p-3 dark:border-zinc-600 dark:bg-zinc-900">

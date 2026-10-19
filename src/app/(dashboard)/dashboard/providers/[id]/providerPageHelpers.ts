@@ -528,6 +528,25 @@ export function effectiveUpstreamHeadersForProtocol(
   return base;
 }
 
+export function effectiveCustomRequestBodyForProtocol(
+  modelId: string,
+  protocol: string,
+  customMap: CompatModelMap,
+  overrideMap: CompatModelMap
+): Record<string, unknown> | undefined {
+  const c = customMap.get(modelId);
+  const o = overrideMap.get(modelId);
+  const pc = getProtoSlice(c, o, protocol);
+  if (
+    pc?.customRequestBody &&
+    typeof pc.customRequestBody === "object" &&
+    !Array.isArray(pc.customRequestBody)
+  ) {
+    return pc.customRequestBody;
+  }
+  return undefined;
+}
+
 export function anyUpstreamHeadersBadge(
   modelId: string,
   customMap: CompatModelMap,

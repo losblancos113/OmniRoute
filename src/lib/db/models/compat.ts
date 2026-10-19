@@ -4,6 +4,9 @@ import { getDbInstance } from "../core";
 import {
   MODEL_COMPAT_PROTOCOL_KEYS,
   type ModelCompatProtocolKey,
+  FORBIDDEN_REQUEST_BODY_KEYS,
+  isForbiddenRequestBodyKey,
+  validateAndSanitizeCustomRequestBody,
 } from "@/shared/constants/modelCompat";
 import { isForbiddenUpstreamHeaderName } from "@/shared/constants/upstreamHeaders";
 import { isHiddenForModality } from "@/shared/utils/modelVisibility";
@@ -13,7 +16,13 @@ import { finishModelCatalogWriteWithBackup } from "./modelCatalogWriteSignals";
 /** Built-in / alias models: tool-call + developer-role flags without a full custom row */
 const MODEL_COMPAT_NAMESPACE = "modelCompatOverrides";
 
-export { MODEL_COMPAT_PROTOCOL_KEYS, type ModelCompatProtocolKey };
+export {
+  MODEL_COMPAT_PROTOCOL_KEYS,
+  type ModelCompatProtocolKey,
+  FORBIDDEN_REQUEST_BODY_KEYS,
+  isForbiddenRequestBodyKey,
+  validateAndSanitizeCustomRequestBody,
+};
 
 export type ModelCompatPerProtocol = {
   normalizeToolCallId?: boolean;
@@ -29,44 +38,6 @@ export type CompatByProtocolMap = Partial<Record<ModelCompatProtocolKey, ModelCo
 
 export function isCompatProtocolKey(p: string): p is ModelCompatProtocolKey {
   return (MODEL_COMPAT_PROTOCOL_KEYS as readonly string[]).includes(p);
-}
-
-export const FORBIDDEN_REQUEST_BODY_KEYS = new Set(["model", "messages", "stream"]);
-
-export function isForbiddenRequestBodyKey(key: string): boolean {
-  if (!key || typeof key !== "string") return true;
-  const lower = key.trim().toLowerCase();
-  if (FORBIDDEN_REQUEST_BODY_KEYS.has(lower)) return true;
-  if (lower.startsWith("_")) return true;
-  return false;
-}
-
-export function validateAndSanitizeCustomRequestBody(
-  raw: unknown
-): { valid: true; data: Record<string, unknown> } | { valid: false; error: string } {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return { valid: false, error: "Must be a JSON object" };
-  }
-  const entries = Object.entries(raw as Record<string, unknown>);
-  const forbidden: string[] = [];
-  const sanitized: Record<string, unknown> = {};
-
-  for (const [k, v] of entries) {
-    if (isForbiddenRequestBodyKey(k)) {
-      forbidden.push(k);
-    } else {
-      sanitized[k] = v;
-    }
-  }
-
-  if (forbidden.length > 0) {
-    return {
-      valid: false,
-      error: `Keys cannot be overwritten: ${forbidden.join(", ")}`,
-    };
-  }
-
-  return { valid: true, data: sanitized };
 }
 
 const UPSTREAM_HEADERS_MAX = 16;
