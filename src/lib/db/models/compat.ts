@@ -21,12 +21,52 @@ export type ModelCompatPerProtocol = {
   preserveVideoUrl?: boolean;
   /** Merged into upstream HTTP requests for this model (after default auth headers). */
   upstreamHeaders?: Record<string, string>;
+  /** Custom request body attributes merged into outgoing payload sent to provider */
+  customRequestBody?: Record<string, unknown>;
 };
 
 export type CompatByProtocolMap = Partial<Record<ModelCompatProtocolKey, ModelCompatPerProtocol>>;
 
 export function isCompatProtocolKey(p: string): p is ModelCompatProtocolKey {
   return (MODEL_COMPAT_PROTOCOL_KEYS as readonly string[]).includes(p);
+}
+
+export const FORBIDDEN_REQUEST_BODY_KEYS = new Set(["model", "messages", "stream"]);
+
+export function isForbiddenRequestBodyKey(key: string): boolean {
+  if (!key || typeof key !== "string") return true;
+  const lower = key.trim().toLowerCase();
+  if (FORBIDDEN_REQUEST_BODY_KEYS.has(lower)) return true;
+  if (lower.startsWith("_")) return true;
+  return false;
+}
+
+export function validateAndSanitizeCustomRequestBody(
+  raw: unknown
+): { valid: true; data: Record<string, unknown> } | { valid: false; error: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return { valid: false, error: "Must be a JSON object" };
+  }
+  const entries = Object.entries(raw as Record<string, unknown>);
+  const forbidden: string[] = [];
+  const sanitized: Record<string, unknown> = {};
+
+  for (const [k, v] of entries) {
+    if (isForbiddenRequestBodyKey(k)) {
+      forbidden.push(k);
+    } else {
+      sanitized[k] = v;
+    }
+  }
+
+  if (forbidden.length > 0) {
+    return {
+      valid: false,
+      error: `Keys cannot be overwritten: ${forbidden.join(", ")}`,
+    };
+  }
+
+  return { valid: true, data: sanitized };
 }
 
 const UPSTREAM_HEADERS_MAX = 16;
@@ -79,7 +119,8 @@ export function deepMergeCompatByProtocol(
       Object.prototype.hasOwnProperty.call(deltas, "normalizeToolCallId") ||
       Object.prototype.hasOwnProperty.call(deltas, "preserveOpenAIDeveloperRole") ||
       Object.prototype.hasOwnProperty.call(deltas, "preserveVideoUrl") ||
-      Object.prototype.hasOwnProperty.call(deltas, "upstreamHeaders");
+      Object.prototype.hasOwnProperty.call(deltas, "upstreamHeaders") ||
+      Object.prototype.hasOwnProperty.call(deltas, "customRequestBody");
     if (!hasDelta) continue;
     const cur: ModelCompatPerProtocol = { ...(out[key] || {}) };
     if ("normalizeToolCallId" in deltas) {
@@ -99,6 +140,19 @@ export function deepMergeCompatByProtocol(
         const s = sanitizeUpstreamHeadersMap(uh as Record<string, unknown>);
         if (Object.keys(s).length === 0) delete cur.upstreamHeaders;
         else cur.upstreamHeaders = s;
+      }
+    }
+    if ("customRequestBody" in deltas) {
+      const crb = deltas.customRequestBody;
+      if (crb === undefined || crb === null) {
+        delete cur.customRequestBody;
+      } else {
+        const validated = validateAndSanitizeCustomRequestBody(crb);
+        if (!validated.valid || Object.keys(validated.data).length === 0) {
+          delete cur.customRequestBody;
+        } else {
+          cur.customRequestBody = validated.data;
+        }
       }
     }
     if (Object.keys(cur).length === 0) delete out[key];

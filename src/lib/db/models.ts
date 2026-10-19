@@ -28,6 +28,7 @@ import {
   compatByProtocolHasEntries,
   isCompatProtocolKey,
   sanitizeUpstreamHeadersMap,
+  validateAndSanitizeCustomRequestBody,
   removeModelCompatOverride,
   mergeModelCompatOverride,
   isOverrideHiddenForModality,
@@ -39,6 +40,9 @@ import {
 
 export {
   sanitizeUpstreamHeadersMap,
+  validateAndSanitizeCustomRequestBody,
+  isForbiddenRequestBodyKey,
+  FORBIDDEN_REQUEST_BODY_KEYS,
   getModelCompatOverrides,
   mergeModelCompatOverride,
   removeModelCompatOverride,
@@ -1228,6 +1232,46 @@ export function getModelUpstreamExtraHeaders(
         co.compatByProtocol[protocol]!.upstreamHeaders as Record<string, unknown>
       )
     );
+  }
+  return base;
+}
+
+/**
+ * Returns sanitized custom request body attributes configured for (provider, model, protocol).
+ * Looks up customModels first, falling back to modelCompatOverrides.
+ */
+export function getModelCustomRequestBody(
+  providerId: string,
+  modelId: string,
+  protocol?: string | null
+): Record<string, unknown> {
+  const base: Record<string, unknown> = {};
+  if (!providerId || !modelId) return base;
+
+  const m = getCustomModelRow(providerId, modelId);
+  if (m) {
+    if (protocol) {
+      const pc = (m.compatByProtocol as CompatByProtocolMap | undefined)?.[protocol];
+      const fromProto = pc?.customRequestBody;
+      if (fromProto && typeof fromProto === "object" && !Array.isArray(fromProto)) {
+        const validated = validateAndSanitizeCustomRequestBody(fromProto);
+        if (validated.valid) {
+          Object.assign(base, validated.data);
+        }
+      }
+    }
+    return base;
+  }
+
+  const co = readCompatList(providerId).find((e) => e.id === modelId);
+  if (protocol && co?.compatByProtocol?.[protocol]?.customRequestBody) {
+    const fromProto = co.compatByProtocol[protocol]!.customRequestBody;
+    if (fromProto && typeof fromProto === "object" && !Array.isArray(fromProto)) {
+      const validated = validateAndSanitizeCustomRequestBody(fromProto);
+      if (validated.valid) {
+        Object.assign(base, validated.data);
+      }
+    }
   }
   return base;
 }
